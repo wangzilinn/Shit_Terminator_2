@@ -62,32 +62,73 @@ var PolygonHelper = (function () {
     return PolygonHelper;
 }());
 var numberOfShapesControl;
+var state;
+var drawSystem;
+var size;
 function setup() {
-    console.log("🚀 - Setup initialized - P5 is running");
-    createCanvas(windowWidth, windowHeight);
-    rectMode(CENTER).noFill().frameRate(30);
-    numberOfShapesControl = createSlider(1, 30, 15, 1).position(10, 10).style("width", "100px");
+    state = State.READY;
+    size = new Vector(800, 600);
+    drawSystem = new DrawSystem(size);
+    createCanvas(size.x, size.y);
 }
 function windowResized() {
-    resizeCanvas(windowWidth, windowHeight);
+    resizeCanvas(size.x, size.y);
 }
 function draw() {
-    background(0);
-    translate(width / 2, height / 2);
-    var numberOfShapes = numberOfShapesControl.value();
-    var colours = ColorHelper.getColorsArray(numberOfShapes);
-    var speed = (frameCount / (numberOfShapes * 30)) * 2;
-    for (var i = 0; i < numberOfShapes; i++) {
-        push();
-        var lineWidth = 8;
-        var spin = speed * (numberOfShapes - i);
-        var numberOfSides = 3 + i;
-        var width_1 = 40 * i;
-        strokeWeight(lineWidth);
-        stroke(colours[i]);
-        rotate(spin);
-        PolygonHelper.draw(numberOfSides, width_1);
-        pop();
+    background(200);
+    switch (state) {
+        case State.READY:
+            drawSystem.drawReadyScreen();
+            break;
+        case State.PASS:
+            break;
+        case State.RUNNING:
+            break;
+        case State.WIN:
+            break;
+        case State.OVER:
+            break;
     }
 }
+var DrawSystem = (function () {
+    function DrawSystem(size) {
+        this.centerPosition = size.div(2);
+        this.size = size;
+    }
+    DrawSystem.prototype.drawReadyScreen = function () {
+        fill(0);
+        textSize(60);
+        var str = "Shit Terminator";
+        text(str, this.getAlignX(str, 60, this.size.x), this.centerPosition.y);
+        str = "press space to start";
+        textSize(20);
+        text(str, this.getAlignX(str, 20, this.size.x), this.centerPosition.y + 40);
+    };
+    DrawSystem.prototype.getAlignX = function (str, textSize, width) {
+        var len = str.length * textSize / 2;
+        return (int)(width / 2 - len / 2);
+    };
+    return DrawSystem;
+}());
+var State;
+(function (State) {
+    State[State["READY"] = 0] = "READY";
+    State[State["RUNNING"] = 1] = "RUNNING";
+    State[State["PASS"] = 2] = "PASS";
+    State[State["WIN"] = 3] = "WIN";
+    State[State["OVER"] = 4] = "OVER";
+})(State || (State = {}));
+var Vector = (function () {
+    function Vector(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+    Vector.prototype.div = function (num) {
+        var res = new Vector(this.x, this.y);
+        res.x /= num;
+        res.y /= num;
+        return res;
+    };
+    return Vector;
+}());
 //# sourceMappingURL=build.js.map
