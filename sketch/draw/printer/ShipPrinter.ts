@@ -57,4 +57,12 @@ class ShipPrinter {
   public startShowingBeingHitEffect(): void {
     this.showBeingHitEffect = true;
   }
+
+  public getRingColor(): Color {
+    return this.ringColor;
+  }
+
+  public getRingColorValue(): number[] {
+    return this.ringColorValue;
+  }
 }

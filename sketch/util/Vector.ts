@@ -54,4 +54,8 @@ class Vector {
     let dy = this.y - vec.y;
     return Math.sqrt(dx * dx + dy * dy);
   }
+
+  public heading(): number {
+    return Math.atan2(this.y, this.x);
+  }
 }
