@@ -42,7 +42,7 @@ class MoveSystem {
     let dist = currentPosition.dist(avoidPosition);
     let sub = currentPosition.sub(avoidPosition).normalize();
     let direction = sub.normalize();
-    let acc = direction.mult((1 / dist) * 10);
+    let acc = direction.mult((1 / dist) * 10).copy();
     if (dist < 300) {
       engine.setAcceleration(acc);
     }

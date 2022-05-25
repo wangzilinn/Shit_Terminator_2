@@ -513,7 +513,7 @@ class Engine {
     }
     getVelocity() {
         this.accLimiter(0.03);
-        this.velocity.add(this.acceleration);
+        this.velocity = this.velocity.add(this.acceleration);
         if (this.enableVelocityLimiter) {
             this.velocityLimiter();
         }
@@ -692,7 +692,7 @@ class Ship {
     moveDirection(direction) {
         this.lastPosition = this.position;
         this.engine.setDirection(direction);
-        this.position.add(this.engine.getVelocity());
+        this.position = this.position.add(this.engine.getVelocity());
         if (this.resourceContainer.empty(ResourceClass.FUEL) && !this.dead) {
             this.dead = true;
             this.deadPosition = this.position.copy();
@@ -700,11 +700,11 @@ class Ship {
     }
     moveAgainst(enemyPosition) {
         MoveSystem.collisionModel(this.engine, this.position);
-        this.position.add(this.engine.getVelocity());
+        this.position = this.position.add(this.engine.getVelocity());
         MoveSystem.avoidanceModel(this.engine, this.position, enemyPosition);
-        this.position.add(this.engine.getVelocity());
+        this.position = this.position.add(this.engine.getVelocity());
         MoveSystem.frictionModel(this.engine);
-        this.position.add(this.engine.getVelocity());
+        this.position = this.position.add(this.engine.getVelocity());
     }
     checkIfBeingHit(bullet) {
         return bullet.position.dist(this.position) < size.mag() / 2;
@@ -802,7 +802,7 @@ class MoveSystem {
         let dist = currentPosition.dist(avoidPosition);
         let sub = currentPosition.sub(avoidPosition).normalize();
         let direction = sub.normalize();
-        let acc = direction.mult((1 / dist) * 10);
+        let acc = direction.mult((1 / dist) * 10).copy();
         if (dist < 300) {
             engine.setAcceleration(acc);
         }

@@ -58,7 +58,7 @@ class Engine {
 
   public getVelocity(): Vector {
     this.accLimiter(0.03);
-    this.velocity.add(this.acceleration);
+    this.velocity = this.velocity.add(this.acceleration);
     if (this.enableVelocityLimiter) {
       this.velocityLimiter();
     }

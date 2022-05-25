@@ -111,7 +111,7 @@ class Ship {
   public moveDirection(direction: Direction): void {
     this.lastPosition = this.position;
     this.engine.setDirection(direction);
-    this.position.add(this.engine.getVelocity());
+    this.position = this.position.add(this.engine.getVelocity());
     // 减少燃料:
     // float d = position.dist(lastPosition);
     // double r = Math.floor(d / 25);
@@ -130,11 +130,11 @@ class Ship {
    */
   public moveAgainst(enemyPosition: Vector): void {
     MoveSystem.collisionModel(this.engine, this.position);
-    this.position.add(this.engine.getVelocity());
+    this.position = this.position.add(this.engine.getVelocity());
     MoveSystem.avoidanceModel(this.engine, this.position, enemyPosition);
-    this.position.add(this.engine.getVelocity());
+    this.position = this.position.add(this.engine.getVelocity());
     MoveSystem.frictionModel(this.engine);
-    this.position.add(this.engine.getVelocity());
+    this.position = this.position.add(this.engine.getVelocity());
     // TODO:减少燃料
   }
 
