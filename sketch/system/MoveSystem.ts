@@ -1,7 +1,7 @@
 class MoveSystem {
   public static randomPosition(): Vector {
-    let x = Meta.screenSize.x;
-    let y = Meta.screenSize.y;
+    let x = new Meta().screenSize.x;
+    let y = new Meta().screenSize.y;
 
     return new Vector(Math.random() * x, Math.random() * y);
   }
@@ -17,11 +17,11 @@ class MoveSystem {
    * @param position 当前entity所在位置
    */
   public static collisionModel(engine: Engine, position: Vector): void {
-    if (position.x > Meta.screenSize.x || position.x < 0) {
+    if (position.x > new Meta().screenSize.x || position.x < 0) {
       let velocity = engine.getVelocity();
       velocity.x = -velocity.x;
     }
-    if (position.y > Meta.screenSize.y || position.y < 0) {
+    if (position.y > new Meta().screenSize.y || position.y < 0) {
       let velocity = engine.getVelocity();
       velocity.y = -velocity.y;
     }

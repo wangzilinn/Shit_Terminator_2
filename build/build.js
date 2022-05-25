@@ -54,13 +54,25 @@ class PolygonHelper {
     }
 }
 let numberOfShapesControl;
-let state;
+let pressedKeys;
 let drawSystem;
 let size;
+let info;
+let enemyShips;
+let playerShip;
+let resourceList;
+let bulletList;
+let state;
 function setup() {
+    pressedKeys = new Set();
     state = State.READY;
     size = new Vector(800, 600);
     drawSystem = new DrawSystem(size);
+    resourceList = new Array();
+    bulletList = new Array();
+    info = new Info();
+    enemyShips = [new Ship(Role.COMPUTER)];
+    playerShip = new Ship(Role.PLAYER);
     createCanvas(size.x, size.y);
 }
 function windowResized() {
@@ -73,14 +85,156 @@ function draw() {
             drawSystem.drawReadyScreen();
             break;
         case State.PASS:
+            drawSystem.drawNextLevelScreen(enemyShips);
             break;
         case State.RUNNING:
+            drawGame();
             break;
         case State.WIN:
+            drawSystem.drawWinScreen(enemyShips);
             break;
         case State.OVER:
+            drawSystem.drawLoseScreen(enemyShips);
             break;
     }
+}
+function drawGame() {
+    if (drawSystem.checkAndDrawLevelNameScreen(info)) {
+        return;
+    }
+    if (frameCount % 5 == 0) {
+        let resource = new Resource();
+        resourceList.push(resource);
+    }
+    for (let enemyShip of enemyShips) {
+        enemyShip.moveAgainst(playerShip.position);
+        enemyShip.updateShootDirection(playerShip.position);
+        if (frameCount % 60 == 0) {
+            console.log("enemy shoot");
+        }
+    }
+    if (pressedKeys.size > 0) {
+        console.log("pressedKeys");
+        console.log(pressedKeys);
+    }
+    if (pressedKeys.has("w") && playerShip.position.y > 0) {
+        console.log("up");
+        playerShip.moveDirection(Direction.UP);
+    }
+    if (pressedKeys.has("s") && playerShip.position.y < height) {
+        playerShip.moveDirection(Direction.DOWN);
+    }
+    if (pressedKeys.has("a") && playerShip.position.x > 0) {
+        playerShip.moveDirection(Direction.LEFT);
+    }
+    if (pressedKeys.has("d") && playerShip.position.x < width) {
+        playerShip.moveDirection(Direction.RIGHT);
+    }
+    resourceList.filter((resource) => {
+        resource.reduceLife();
+        if (resource.getRemainLife() <= 0) {
+            return false;
+        }
+        else if (playerShip.checkIfAbsorb(resource)) {
+            playerShip.absorbFuel(resource);
+            return false;
+        }
+        else {
+            for (let enemyShip of enemyShips) {
+                if (enemyShip.checkIfAbsorb(resource)) {
+                    enemyShip.absorbFuel(resource);
+                    return false;
+                }
+            }
+            return true;
+        }
+    });
+    bulletList.filter((bullet) => {
+        bullet.move();
+        if (bullet.getRole() == Role.PLAYER) {
+            for (let enemyShip of enemyShips) {
+                if (enemyShip.checkIfBeingHit(bullet)) {
+                    enemyShip.beingHit(bullet);
+                    return false;
+                }
+            }
+        }
+        else if (bullet.getRole() == Role.COMPUTER &&
+            playerShip.checkIfBeingHit(bullet)) {
+            playerShip.beingHit(bullet);
+            return false;
+        }
+        else if (bullet.position.x <= 0 ||
+            bullet.position.x >= width ||
+            bullet.position.y <= 0 ||
+            bullet.position.y >= height) {
+            return false;
+        }
+        else {
+            return true;
+        }
+    });
+    let allEnemyDead = true;
+    for (let enemyShip of enemyShips) {
+        if (!enemyShip.dead) {
+            allEnemyDead = false;
+            break;
+        }
+    }
+    if (allEnemyDead) {
+        console.log("enemyShip is dead");
+        if (info.isMaxLevel()) {
+            state = State.WIN;
+            info.resetLevel();
+            drawSystem.resetDrawLevelNameScreenCounter();
+        }
+        else {
+            state = State.PASS;
+            info.upgradeLevel();
+        }
+        playerShip = new Ship(Role.PLAYER);
+        enemyShips = [new Ship(Role.COMPUTER), new Ship(Role.COMPUTER)];
+    }
+    else if (playerShip.dead) {
+        state = State.OVER;
+        info.resetLevel();
+        enemyShips = [new Ship(Role.COMPUTER)];
+        playerShip = new Ship(Role.PLAYER);
+        drawSystem.resetDrawLevelNameScreenCounter();
+    }
+    for (let enemyShip of enemyShips) {
+        drawSystem.drawShip(enemyShip);
+    }
+    drawSystem.drawShip(playerShip);
+    drawSystem.drawBullets(bulletList);
+    drawSystem.drawResources(resourceList);
+    drawSystem.drawGameLayout(info, playerShip, enemyShips);
+}
+function keyPressed() {
+    let pressedKey = key;
+    if (pressedKey == " ") {
+        if (state == State.WIN || state == State.OVER) {
+            state = State.READY;
+        }
+        else if (state == State.READY || state == State.PASS) {
+            state = State.RUNNING;
+        }
+    }
+    console.log("press " + pressedKey);
+    pressedKeys.add(pressedKey);
+}
+function keyReleased() {
+    pressedKeys.delete(key);
+}
+function mousePressed() {
+    let bullet = playerShip.shoot(null);
+    if (bullet != null) {
+        console.log("player shoot");
+        bulletList.push(bullet);
+    }
+}
+function mouseMoved() {
+    playerShip.updateShootDirection(new Vector(mouseX, mouseY));
 }
 class DrawSystem {
     constructor(size) {
@@ -499,6 +653,7 @@ class Ship {
         this.deadPosition = new Vector(0, 0);
         this.size = new Vector(70, 70);
         this.shootDirection = new Vector(1, 1);
+        this.meta = new Meta();
         this.resourceContainer = new ResourceContainer(100, 100, 100);
         this.gun = new Gun(this.resourceContainer, role);
         switch (this.role) {
@@ -507,7 +662,7 @@ class Ship {
                 this.engine = new Engine(this.resourceContainer, MoveSystem.randomVelocity(), new Vector(0, 0), true, true, 5);
                 break;
             case Role.PLAYER:
-                this.position = new Vector(Meta.screenSize.x / 2, Meta.screenSize.y / 2);
+                this.position = new Vector(this.meta.screenSize.x / 2, this.meta.screenSize.y / 2);
                 this.engine = new Engine(this.resourceContainer, new Vector(0, 0), new Vector(0, 0), false, false, 0);
                 break;
         }
@@ -518,6 +673,67 @@ class Ship {
     }
     getRole() {
         return this.role;
+    }
+    checkIfAbsorb(resource) {
+        if (this.role == Role.COMPUTER) {
+            return resource.position.dist(this.position) < resource.volume;
+        }
+        else {
+            return (resource.position.dist(this.position) < resource.volume * 2 + size.x);
+        }
+    }
+    absorbFuel(resource) {
+        if (this.dead) {
+            return;
+        }
+        this.printer.startShowingAbsorbResourceEffect(resource.resourceClass);
+        this.resourceContainer.increase(resource.resourceClass, resource.volume);
+    }
+    moveDirection(direction) {
+        this.lastPosition = this.position;
+        this.engine.setDirection(direction);
+        this.position.add(this.engine.getVelocity());
+        if (this.resourceContainer.empty(ResourceClass.FUEL) && !this.dead) {
+            this.dead = true;
+            this.deadPosition = this.position.copy();
+        }
+    }
+    moveAgainst(enemyPosition) {
+        MoveSystem.collisionModel(this.engine, this.position);
+        this.position.add(this.engine.getVelocity());
+        MoveSystem.avoidanceModel(this.engine, this.position, enemyPosition);
+        this.position.add(this.engine.getVelocity());
+        MoveSystem.frictionModel(this.engine);
+        this.position.add(this.engine.getVelocity());
+    }
+    checkIfBeingHit(bullet) {
+        return bullet.position.dist(this.position) < size.mag() / 2;
+    }
+    beingHit(bullet) {
+        this.resourceContainer.decrease(ResourceClass.SHIELD, bullet.damage);
+        this.printer.startShowingBeingHitEffect();
+        if (this.resourceContainer.empty(ResourceClass.SHIELD)) {
+            console.log("no shield");
+            this.dead = true;
+        }
+    }
+    shoot(enemyShip) {
+        let bullet = null;
+        switch (this.role) {
+            case Role.PLAYER:
+                bullet = this.gun.shoot(this.position.copy(), this.shootDirection.copy());
+                break;
+            case Role.COMPUTER:
+                bullet = AimingSystem.directShootModel(this.gun, this.position, enemyShip.position);
+                break;
+        }
+        return bullet;
+    }
+    updateShootDirection(mousePosition) {
+        this.shootDirection = mousePosition
+            .copy()
+            .sub(this.position.copy())
+            .normalize();
     }
 }
 var Color;
@@ -560,24 +776,24 @@ class AimingSystem {
 }
 class Meta {
     constructor() {
-        Meta.screenSize = new Vector(800, 600);
+        this.screenSize = new Vector(800, 600);
     }
 }
 class MoveSystem {
     static randomPosition() {
-        let x = Meta.screenSize.x;
-        let y = Meta.screenSize.y;
+        let x = new Meta().screenSize.x;
+        let y = new Meta().screenSize.y;
         return new Vector(Math.random() * x, Math.random() * y);
     }
     static randomVelocity() {
         return new Vector((Math.random() - 0.5) * 5, (Math.random() - 0.5) * 5);
     }
     static collisionModel(engine, position) {
-        if (position.x > Meta.screenSize.x || position.x < 0) {
+        if (position.x > new Meta().screenSize.x || position.x < 0) {
             let velocity = engine.getVelocity();
             velocity.x = -velocity.x;
         }
-        if (position.y > Meta.screenSize.y || position.y < 0) {
+        if (position.y > new Meta().screenSize.y || position.y < 0) {
             let velocity = engine.getVelocity();
             velocity.y = -velocity.y;
         }

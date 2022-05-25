@@ -22,12 +22,14 @@ class Ship {
    * 移动部分:
    */
   private engine: Engine;
+  private meta: Meta;
 
   constructor(role: Role) {
     this.role = role;
     this.deadPosition = new Vector(0, 0);
     this.size = new Vector(70, 70);
     this.shootDirection = new Vector(1, 1);
+    this.meta = new Meta();
 
     this.resourceContainer = new ResourceContainer(100, 100, 100);
 
@@ -47,8 +49,8 @@ class Ship {
         break;
       case Role.PLAYER:
         this.position = new Vector(
-          Meta.screenSize.x / 2,
-          Meta.screenSize.y / 2
+          this.meta.screenSize.x / 2,
+          this.meta.screenSize.y / 2
         );
         this.engine = new Engine(
           this.resourceContainer,
@@ -70,6 +72,35 @@ class Ship {
 
   public getRole(): Role {
     return this.role;
+  }
+
+  /**
+   * @param resource 要吸收的油滴
+   * @return 是否可以吸收
+   */
+  public checkIfAbsorb(resource: Resource): boolean {
+    //注意还要考虑Oil的尺寸
+    if (this.role == Role.COMPUTER) {
+      // 降低飞船的吸收半径,不然太难了
+      return resource.position.dist(this.position) < resource.volume;
+    } else {
+      return (
+        resource.position.dist(this.position) < resource.volume * 2 + size.x
+      );
+    }
+  }
+
+  /**
+   * 执行吸收油滴的逻辑
+   *
+   * @param resource 要吸收的油滴
+   */
+  public absorbFuel(resource: Resource): void {
+    if (this.dead) {
+      return;
+    }
+    this.printer.startShowingAbsorbResourceEffect(resource.resourceClass);
+    this.resourceContainer.increase(resource.resourceClass, resource.volume);
   }
 
   /**
@@ -121,7 +152,7 @@ class Ship {
    * @param bullet 被击中时的子弹
    */
   public beingHit(bullet: Bullet): void {
-    console.log(this.role + " ship was hit, damage is " + bullet.damage);
+    // console.log(this.role + " ship was hit, damage is " + bullet.damage);
     this.resourceContainer.decrease(ResourceClass.SHIELD, bullet.damage);
     // 配置画笔开始显示被击中效果
     this.printer.startShowingBeingHitEffect();
