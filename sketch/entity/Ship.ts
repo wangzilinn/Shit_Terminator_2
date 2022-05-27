@@ -44,7 +44,7 @@ class Ship {
           new Vector(0, 0),
           true,
           true,
-          5
+          1
         );
         break;
       case Role.PLAYER:
@@ -84,9 +84,14 @@ class Ship {
       // 降低飞船的吸收半径,不然太难了
       return resource.position.dist(this.position) < resource.volume;
     } else {
-      return (
-        resource.position.dist(this.position) < resource.volume * 2 + size.x
-      );
+      if (
+        resource.position.dist(this.position) <
+        resource.volume * 2 + this.size.x
+      ) {
+        return true;
+      } else {
+        return false;
+      }
     }
   }
 
@@ -143,7 +148,7 @@ class Ship {
    * @return 该子弹是否会击中自己
    */
   public checkIfBeingHit(bullet: Bullet): boolean {
-    return bullet.position.dist(this.position) < size.mag() / 2;
+    return bullet.position.dist(this.position) < this.size.mag() / 2;
   }
 
   /**

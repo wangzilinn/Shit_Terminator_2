@@ -42,7 +42,7 @@ class MoveSystem {
     let dist = currentPosition.dist(avoidPosition);
     let sub = currentPosition.sub(avoidPosition).normalize();
     let direction = sub.normalize();
-    let acc = direction.mult((1 / dist) * 10).copy();
+    let acc = direction.mult((1 / dist) * 5).copy();
     if (dist < 300) {
       engine.setAcceleration(acc);
     }
@@ -55,7 +55,7 @@ class MoveSystem {
    */
   public static frictionModel(engine: Engine): void {
     let accDirection = engine.getVelocity().normalize();
-    let friction = accDirection.mult(-0.001);
+    let friction = accDirection.mult(-0.005);
     let acc = engine.getAcceleration().copy();
     if (Math.abs(engine.getVelocity().x) > 3) {
       acc.x += friction.x;

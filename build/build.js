@@ -102,7 +102,7 @@ function drawGame() {
     if (drawSystem.checkAndDrawLevelNameScreen(info)) {
         return;
     }
-    if (frameCount % 5 == 0) {
+    if (frameCount % 10 == 0) {
         let resource = new Resource();
         resourceList.push(resource);
     }
@@ -110,15 +110,14 @@ function drawGame() {
         enemyShip.moveAgainst(playerShip.position);
         enemyShip.updateShootDirection(playerShip.position);
         if (frameCount % 60 == 0) {
-            console.log("enemy shoot");
+            let bullet = enemyShip.shoot(playerShip);
+            if (bullet != null) {
+                console.log("enemy shoot");
+                bulletList.push(bullet);
+            }
         }
     }
-    if (pressedKeys.size > 0) {
-        console.log("pressedKeys");
-        console.log(pressedKeys);
-    }
     if (pressedKeys.has("w") && playerShip.position.y > 0) {
-        console.log("up");
         playerShip.moveDirection(Direction.UP);
     }
     if (pressedKeys.has("s") && playerShip.position.y < height) {
@@ -130,7 +129,7 @@ function drawGame() {
     if (pressedKeys.has("d") && playerShip.position.x < width) {
         playerShip.moveDirection(Direction.RIGHT);
     }
-    resourceList.filter((resource) => {
+    resourceList = resourceList.filter((resource) => {
         resource.reduceLife();
         if (resource.getRemainLife() <= 0) {
             return false;
@@ -149,20 +148,25 @@ function drawGame() {
             return true;
         }
     });
-    bulletList.filter((bullet) => {
+    bulletList = bulletList.filter((bullet) => {
         bullet.move();
         if (bullet.getRole() == Role.PLAYER) {
             for (let enemyShip of enemyShips) {
                 if (enemyShip.checkIfBeingHit(bullet)) {
                     enemyShip.beingHit(bullet);
+                    console.log("enemy being hit");
                     return false;
                 }
             }
+            return true;
         }
-        else if (bullet.getRole() == Role.COMPUTER &&
-            playerShip.checkIfBeingHit(bullet)) {
-            playerShip.beingHit(bullet);
-            return false;
+        else if (bullet.getRole() == Role.COMPUTER) {
+            if (playerShip.checkIfBeingHit(bullet)) {
+                playerShip.beingHit(bullet);
+                console.log("player being hit");
+                return false;
+            }
+            return true;
         }
         else if (bullet.position.x <= 0 ||
             bullet.position.x >= width ||
@@ -220,7 +224,6 @@ function keyPressed() {
             state = State.RUNNING;
         }
     }
-    console.log("press " + pressedKey);
     pressedKeys.add(pressedKey);
 }
 function keyReleased() {
@@ -459,7 +462,7 @@ class Bullet {
     }
     move() {
         this.distance++;
-        this.position = this.position.add(this.directionVector.mult(5));
+        this.position = this.position.add(this.directionVector.mult(10));
     }
     getRole() {
         return this.role;
@@ -659,7 +662,7 @@ class Ship {
         switch (this.role) {
             case Role.COMPUTER:
                 this.position = MoveSystem.randomPosition();
-                this.engine = new Engine(this.resourceContainer, MoveSystem.randomVelocity(), new Vector(0, 0), true, true, 5);
+                this.engine = new Engine(this.resourceContainer, MoveSystem.randomVelocity(), new Vector(0, 0), true, true, 1);
                 break;
             case Role.PLAYER:
                 this.position = new Vector(this.meta.screenSize.x / 2, this.meta.screenSize.y / 2);
@@ -679,7 +682,13 @@ class Ship {
             return resource.position.dist(this.position) < resource.volume;
         }
         else {
-            return (resource.position.dist(this.position) < resource.volume * 2 + size.x);
+            if (resource.position.dist(this.position) <
+                resource.volume * 2 + this.size.x) {
+                return true;
+            }
+            else {
+                return false;
+            }
         }
     }
     absorbFuel(resource) {
@@ -707,7 +716,7 @@ class Ship {
         this.position = this.position.add(this.engine.getVelocity());
     }
     checkIfBeingHit(bullet) {
-        return bullet.position.dist(this.position) < size.mag() / 2;
+        return bullet.position.dist(this.position) < this.size.mag() / 2;
     }
     beingHit(bullet) {
         this.resourceContainer.decrease(ResourceClass.SHIELD, bullet.damage);
@@ -802,14 +811,14 @@ class MoveSystem {
         let dist = currentPosition.dist(avoidPosition);
         let sub = currentPosition.sub(avoidPosition).normalize();
         let direction = sub.normalize();
-        let acc = direction.mult((1 / dist) * 10).copy();
+        let acc = direction.mult((1 / dist) * 5).copy();
         if (dist < 300) {
             engine.setAcceleration(acc);
         }
     }
     static frictionModel(engine) {
         let accDirection = engine.getVelocity().normalize();
-        let friction = accDirection.mult(-0.001);
+        let friction = accDirection.mult(-0.005);
         let acc = engine.getAcceleration().copy();
         if (Math.abs(engine.getVelocity().x) > 3) {
             acc.x += friction.x;

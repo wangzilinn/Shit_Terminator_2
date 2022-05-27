@@ -24,7 +24,7 @@ class Bullet {
 
   public move(): void {
     this.distance++;
-    this.position = this.position.add(this.directionVector.mult(5));
+    this.position = this.position.add(this.directionVector.mult(10));
   }
 
   public getRole(): Role {

@@ -57,7 +57,7 @@ function drawGame() {
     return;
   }
   // 生产资源:
-  if (frameCount % 5 == 0) {
+  if (frameCount % 10 == 0) {
     let resource = new Resource();
     resourceList.push(resource);
   }
@@ -66,20 +66,14 @@ function drawGame() {
     enemyShip.moveAgainst(playerShip.position);
     enemyShip.updateShootDirection(playerShip.position);
     if (frameCount % 60 == 0) {
-      console.log("enemy shoot");
-      // let bullet = enemyShip.shoot(playerShip);
-      // if (bullet != null) {
-      //   bulletList.push(bullet);
-      // }
+      let bullet = enemyShip.shoot(playerShip);
+      if (bullet != null) {
+        console.log("enemy shoot");
+        bulletList.push(bullet);
+      }
     }
   }
-  if (pressedKeys.size > 0) {
-    console.log("pressedKeys");
-    console.log(pressedKeys);
-  }
-
   if (pressedKeys.has("w") && playerShip.position.y > 0) {
-    console.log("up");
     playerShip.moveDirection(Direction.UP);
   }
   if (pressedKeys.has("s") && playerShip.position.y < height) {
@@ -92,19 +86,17 @@ function drawGame() {
     playerShip.moveDirection(Direction.RIGHT);
   }
 
-  //遍历所有油滴,检查鼠标操作的飞船是否可以吸收这个油滴
-  resourceList.filter((resource) => {
+  //遍历所有油滴,检查飞船是否可以吸收这个油滴
+  resourceList = resourceList.filter((resource) => {
     resource.reduceLife();
     if (resource.getRemainLife() <= 0) {
       return false;
     } else if (playerShip.checkIfAbsorb(resource)) {
-      // console.log("player absorb");
       playerShip.absorbFuel(resource);
       return false;
     } else {
       for (let enemyShip of enemyShips) {
         if (enemyShip.checkIfAbsorb(resource)) {
-          // console.log("enemy absorb");
           enemyShip.absorbFuel(resource);
           return false;
         }
@@ -114,22 +106,26 @@ function drawGame() {
   });
 
   //遍历所有子弹,检查子弹是否超出画面,是否击中敌方飞船
-  bulletList.filter((bullet) => {
+
+  bulletList = bulletList.filter((bullet) => {
     bullet.move();
-    //飞船是否被击中:
+    //敌方飞船是否被击中:
     if (bullet.getRole() == Role.PLAYER) {
       for (let enemyShip of enemyShips) {
         if (enemyShip.checkIfBeingHit(bullet)) {
           enemyShip.beingHit(bullet);
+          console.log("enemy being hit");
           return false;
         }
       }
-    } else if (
-      bullet.getRole() == Role.COMPUTER &&
-      playerShip.checkIfBeingHit(bullet)
-    ) {
-      playerShip.beingHit(bullet);
-      return false;
+      return true;
+    } else if (bullet.getRole() == Role.COMPUTER) {
+      if (playerShip.checkIfBeingHit(bullet)) {
+        playerShip.beingHit(bullet);
+        console.log("player being hit");
+        return false;
+      }
+      return true;
     } else if (
       bullet.position.x <= 0 ||
       bullet.position.x >= width ||
@@ -194,7 +190,6 @@ function keyPressed() {
       state = State.RUNNING;
     }
   }
-  console.log("press " + pressedKey);
   pressedKeys.add(pressedKey);
 }
 
