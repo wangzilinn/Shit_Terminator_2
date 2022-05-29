@@ -10,12 +10,30 @@ class DrawSystem {
 
   public drawReadyScreen() {
     fill(0);
-    textSize(60);
-    let str = "Shit Terminator";
-    text(str, this.getAlignX(str, 60, this.size.x), this.centerPosition.y);
-    str = "press space to start";
+    textSize(80);
+    let str = "Virus War";
+    text(str, this.getAlignX(str, 80, this.size.x), this.centerPosition.y - 50);
     textSize(20);
-    text(str, this.getAlignX(str, 20, this.size.x), this.centerPosition.y + 40);
+    str = "WASD or Arrow keys to Move, Mouse to Aim, Left click to Shoot";
+    text(str, this.getAlignX(str, 20, this.size.x), this.centerPosition.y);
+    str = "You can move to collect Ammo (red), Fuel (green) and Shield (blue)";
+    text(str, this.getAlignX(str, 20, this.size.x), this.centerPosition.y + 30);
+    str = "Shooting consumes Ammo and Being hit consumes Shield";
+    text(str, this.getAlignX(str, 20, this.size.x), this.centerPosition.y + 60);
+    str = "Now go and Destroy the virus!";
+    textSize(30);
+    text(
+      str,
+      this.getAlignX(str, 30, this.size.x),
+      this.centerPosition.y + 110
+    );
+    str = "Press Space to Start";
+    textSize(20);
+    text(
+      str,
+      this.getAlignX(str, 20, this.size.x),
+      this.centerPosition.y + 140
+    );
   }
 
   public drawWinScreen(enemyShips: Ship[]): void {
@@ -23,7 +41,7 @@ class DrawSystem {
     fill(0);
     textSize(60);
     text(str, this.getAlignX(str, 60, size.x), this.centerPosition.y);
-    str = "press space to restart";
+    str = "Press Space to Restart";
     textSize(20);
     text(str, this.getAlignX(str, 20, size.x), this.centerPosition.y + 40);
     // for (Ship enemyShip : enemyShips) {
@@ -37,7 +55,7 @@ class DrawSystem {
     fill(0);
     textSize(60);
     text(str, this.getAlignX(str, 60, size.x), this.centerPosition.y);
-    str = "press space to restart";
+    str = "Press Space to Restart";
     textSize(20);
     text(str, this.getAlignX(str, 20, size.x), this.centerPosition.y + 40);
     // for (Ship enemyShip : enemyShips) {
@@ -51,7 +69,7 @@ class DrawSystem {
     textSize(60);
     let str = "Next Level";
     text(str, this.getAlignX(str, 60, size.x), this.centerPosition.y);
-    str = "press space to start";
+    str = "Press Space to Start";
     textSize(20);
     text(str, this.getAlignX(str, 20, size.x), this.centerPosition.y + 40);
     // for (Ship enemyShip : enemyShips) {
@@ -93,16 +111,15 @@ class DrawSystem {
   }
 
   public drawShip(ship: Ship): void {
-    let shipPrinter = ship.getPrinter();
+    let shipPrinter = ship.printer;
     if (ship.dead) {
       return;
     }
 
-    //如果被击中的话，开始画被集中的效果：
-    // if (shipPrinter.checkIfShowBeingHitEffect()) {
-    //     beingHitParticleSystem.addParticle(ship.position);
-    //     shipPrinter.increaseBeingHitFrame();
-    // }
+    //如果被击中的话，开始画被击中的效果：
+    if (shipPrinter.checkIfShowBeingHitEffect()) {
+      shipPrinter.increaseBeingHitFrame();
+    }
     //之所以不在上面的if中调用该方法是因为可能帧数已经用完了，但是有粒子还存在lifespan，得消耗完
     // beingHitParticleSystem.run();
 
@@ -110,17 +127,9 @@ class DrawSystem {
     if (shipPrinter.getRingColor() != null) {
       for (let i = 0; i < shipPrinter.getRingColorValue().length; i++) {
         noFill();
-        switch (shipPrinter.getRingColor()) {
-          case Color.RED:
-            stroke(shipPrinter.getRingColorValue()[i], 0, 0);
-            break;
-          case Color.GREEN:
-            stroke(0, shipPrinter.getRingColorValue()[i], 0);
-            break;
-          case Color.BLUE:
-            stroke(0, 0, shipPrinter.getRingColorValue()[i]);
-            break;
-        }
+        let color = shipPrinter.getRingColor();
+        stroke(color.r, color.g, color.b, shipPrinter.getRingColorValue()[i]);
+
         let radius = ship.size.x + (i + 1) * (1 + i);
         ellipse(ship.position.x, ship.position.y, radius, radius);
       }
@@ -130,7 +139,7 @@ class DrawSystem {
       }
     }
     //画飞船本身:
-    if (ship.getRole() == Role.PLAYER) {
+    if (ship.getRole() == RoleEnum.PLAYER) {
       fill(0);
       ellipse(ship.position.x, ship.position.y, ship.size.x, ship.size.y);
     } else {
@@ -160,7 +169,7 @@ class DrawSystem {
     for (let bullet of bulletList) {
       fill(0);
       noStroke();
-      if (bullet.getRole() == Role.PLAYER) {
+      if (bullet.getRole() == RoleEnum.PLAYER) {
         ellipse(
           bullet.position.x,
           bullet.position.y,
@@ -180,23 +189,15 @@ class DrawSystem {
 
   public drawResources(resourceList: Resource[]): void {
     for (let resource of resourceList) {
-      let trans = resource.getRemainLife() * 3;
-      switch (resource.getResourceClass()) {
-        case ResourceClass.AMMO:
-          fill(255, 0, 0, trans);
-          break;
-        case ResourceClass.FUEL:
-          fill(0, 255, 0, trans);
-          break;
-        case ResourceClass.SHIELD:
-          fill(0, 0, 255, trans);
-      }
+      let trans = resource.remainLife * 3;
+      let color = resource.printer.color;
+      fill(color.r, color.g, color.b, trans);
       noStroke();
       ellipse(
         resource.position.x,
         resource.position.y,
-        resource.getVolume() * 2,
-        resource.getVolume() * 2
+        resource.volume * 2,
+        resource.volume * 2
       );
     }
   }
@@ -207,29 +208,40 @@ class DrawSystem {
     enemyShips: Ship[]
   ): void {
     fill(0);
+    textSize(15);
+    text(playerShip.name + ": ", 10, 530);
     textSize(12);
-    this.drawResourceContainer(playerShip, new Vector(10, 500));
-    for (let i = 0; i < enemyShips.length; i++) {
-      this.drawResourceContainer(enemyShips[i], new Vector(300 + i * 300, 500));
+    this.drawResourceData(playerShip, new Vector(10, 550));
+    let cnt = 0;
+    for (let enemyShip of enemyShips) {
+      // 死了就不显示了
+      if (enemyShip.dead) {
+        continue;
+      }
+      fill(0);
+      textSize(15);
+      text(enemyShip.name + ": ", 300 + cnt * 300, 530);
+      textSize(12);
+      this.drawResourceData(enemyShip, new Vector(300 + cnt * 300, 550));
+      cnt++;
     }
   }
 
-  private drawResourceContainer(ship: Ship, position: Vector): void {
-    text(
-      "Remaining ammo:" + ship.resourceContainer.get(ResourceClass.AMMO),
-      position.x,
-      position.y
-    );
-    text(
-      "Remaining fuel:" + ship.resourceContainer.get(ResourceClass.FUEL),
-      position.x,
-      position.y + 20
-    );
-    text(
-      "Remaining Shield:" + ship.resourceContainer.get(ResourceClass.SHIELD),
-      position.x,
-      position.y + 40
-    );
+  private drawResourceData(ship: Ship, position: Vector): void {
+    let cnt = 0;
+    for (let resourceType of ship.resourceContainer.resourceContainerMap.keys()) {
+      let color = new ResourcePrinter(resourceType).color;
+      fill(color.r, color.g, color.b);
+      text(
+        "Remaining " +
+          resourceType +
+          ": " +
+          ship.resourceContainer.get(resourceType).toFixed(0),
+        position.x,
+        position.y + cnt * 20
+      );
+      cnt++;
+    }
   }
 
   /**
@@ -246,6 +258,10 @@ class DrawSystem {
     return int(width / 2 - len / 2);
   }
 
+  /**
+   * 绘制多边形
+   *
+   * */
   private polygon(x: number, y: number, radius: number, npoints: number): void {
     let angle = TWO_PI / npoints;
     beginShape();

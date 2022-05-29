@@ -22,35 +22,35 @@ class Engine {
     this.maxVelocity = maxVelocity;
   }
 
-  public setDirection(direction: Direction): void {
+  public setDirection(direction: DirectionEnum): void {
     if (this.enableAcceleration) {
       this.acceleration = new Vector(0, 0);
       switch (direction) {
-        case Direction.UP:
+        case DirectionEnum.UP:
           this.acceleration.y = -1;
           break;
-        case Direction.DOWN:
+        case DirectionEnum.DOWN:
           this.acceleration.y = 1;
           break;
-        case Direction.LEFT:
+        case DirectionEnum.LEFT:
           this.acceleration.x = -1;
           break;
-        case Direction.RIGHT:
+        case DirectionEnum.RIGHT:
           this.acceleration.x = 1;
       }
     } else {
       this.velocity = new Vector(0, 0);
       switch (direction) {
-        case Direction.UP:
+        case DirectionEnum.UP:
           this.velocity.y = -10;
           break;
-        case Direction.DOWN:
+        case DirectionEnum.DOWN:
           this.velocity.y = 10;
           break;
-        case Direction.LEFT:
+        case DirectionEnum.LEFT:
           this.velocity.x = -10;
           break;
-        case Direction.RIGHT:
+        case DirectionEnum.RIGHT:
           this.velocity.x = 10;
       }
     }

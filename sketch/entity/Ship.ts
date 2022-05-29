@@ -1,7 +1,9 @@
 class Ship {
   private gun: Gun;
-  private role: Role;
-  private printer: ShipPrinter;
+  private role: RoleEnum;
+  // 飞船的名字
+  public name: String;
+  public printer: ShipPrinter;
   /**
    * 盛放不同资源的容器
    */
@@ -24,19 +26,20 @@ class Ship {
   private engine: Engine;
   private meta: Meta;
 
-  constructor(role: Role) {
+  constructor(role: RoleEnum, name: String) {
     this.role = role;
     this.deadPosition = new Vector(0, 0);
     this.size = new Vector(70, 70);
     this.shootDirection = new Vector(1, 1);
     this.meta = new Meta();
+    this.name = name;
 
     this.resourceContainer = new ResourceContainer(100, 100, 100);
 
     this.gun = new Gun(this.resourceContainer, role);
 
     switch (this.role) {
-      case Role.COMPUTER:
+      case RoleEnum.COMPUTER:
         this.position = MoveSystem.randomPosition();
         this.engine = new Engine(
           this.resourceContainer,
@@ -47,7 +50,7 @@ class Ship {
           1
         );
         break;
-      case Role.PLAYER:
+      case RoleEnum.PLAYER:
         this.position = new Vector(
           this.meta.screenSize.x / 2,
           this.meta.screenSize.y / 2
@@ -66,11 +69,7 @@ class Ship {
     this.printer = new ShipPrinter();
   }
 
-  public getPrinter(): ShipPrinter {
-    return this.printer;
-  }
-
-  public getRole(): Role {
+  public getRole(): RoleEnum {
     return this.role;
   }
 
@@ -80,18 +79,17 @@ class Ship {
    */
   public checkIfAbsorb(resource: Resource): boolean {
     //注意还要考虑Oil的尺寸
-    if (this.role == Role.COMPUTER) {
-      // 降低飞船的吸收半径,不然太难了
-      return resource.position.dist(this.position) < resource.volume;
-    } else {
-      if (
+    if (this.role == RoleEnum.COMPUTER) {
+      // 分别设置不同角色飞船的吸收半径（目前设置成一样的
+      return (
         resource.position.dist(this.position) <
         resource.volume * 2 + this.size.x
-      ) {
-        return true;
-      } else {
-        return false;
-      }
+      );
+    } else {
+      return (
+        resource.position.dist(this.position) <
+        resource.volume * 2 + this.size.x
+      );
     }
   }
 
@@ -100,12 +98,12 @@ class Ship {
    *
    * @param resource 要吸收的油滴
    */
-  public absorbFuel(resource: Resource): void {
+  public absorbResource(resource: Resource): void {
     if (this.dead) {
       return;
     }
-    this.printer.startShowingAbsorbResourceEffect(resource.resourceClass);
-    this.resourceContainer.increase(resource.resourceClass, resource.volume);
+    this.printer.startShowingAbsorbResourceEffect(resource);
+    this.resourceContainer.increase(resource.resourceType, resource.volume);
   }
 
   /**
@@ -113,7 +111,7 @@ class Ship {
    *
    * @param direction 移动方向
    */
-  public moveDirection(direction: Direction): void {
+  public moveDirection(direction: DirectionEnum): void {
     this.lastPosition = this.position;
     this.engine.setDirection(direction);
     this.position = this.position.add(this.engine.getVelocity());
@@ -122,7 +120,7 @@ class Ship {
     // double r = Math.floor(d / 25);
     // resourceContainer.decrease(ResourceClass.FUEL, (float) r);
     // 判断是否没有燃料了 TODO:这里可以不设置为死掉,而是单纯的停止移动,直到被另一个打死
-    if (this.resourceContainer.empty(ResourceClass.FUEL) && !this.dead) {
+    if (this.resourceContainer.empty(ResourceEnum.FUEL) && !this.dead) {
       this.dead = true;
       this.deadPosition = this.position.copy();
     }
@@ -158,10 +156,10 @@ class Ship {
    */
   public beingHit(bullet: Bullet): void {
     // console.log(this.role + " ship was hit, damage is " + bullet.damage);
-    this.resourceContainer.decrease(ResourceClass.SHIELD, bullet.damage);
+    this.resourceContainer.decrease(ResourceEnum.SHIELD, bullet.damage);
     // 配置画笔开始显示被击中效果
     this.printer.startShowingBeingHitEffect();
-    if (this.resourceContainer.empty(ResourceClass.SHIELD)) {
+    if (this.resourceContainer.empty(ResourceEnum.SHIELD)) {
       console.log("no shield");
       this.dead = true;
     }
@@ -170,13 +168,13 @@ class Ship {
   public shoot(enemyShip: Ship): Bullet {
     let bullet = null;
     switch (this.role) {
-      case Role.PLAYER:
+      case RoleEnum.PLAYER:
         bullet = this.gun.shoot(
           this.position.copy(),
           this.shootDirection.copy()
         );
         break;
-      case Role.COMPUTER:
+      case RoleEnum.COMPUTER:
         bullet = AimingSystem.directShootModel(
           this.gun,
           this.position,

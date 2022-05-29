@@ -23,18 +23,8 @@ class ShipPrinter {
     this.ringColorValue[this.ringColorValue.length - 1] = temp;
   }
 
-  public startShowingAbsorbResourceEffect(resourceClass: ResourceClass): void {
-    switch (resourceClass) {
-      case ResourceClass.AMMO:
-        this.ringColor = Color.RED;
-        break;
-      case ResourceClass.FUEL:
-        this.ringColor = Color.GREEN;
-        break;
-      case ResourceClass.SHIELD:
-        this.ringColor = Color.BLUE;
-        break;
-    }
+  public startShowingAbsorbResourceEffect(resource: Resource): void {
+    this.ringColor = resource.printer.color;
   }
 
   public checkIfShowBeingHitEffect(): boolean {

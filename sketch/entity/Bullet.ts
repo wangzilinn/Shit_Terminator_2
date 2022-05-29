@@ -1,5 +1,5 @@
 class Bullet {
-  private role: Role;
+  private role: RoleEnum;
   public position: Vector;
   public size: Vector;
   directionVector: Vector;
@@ -13,7 +13,7 @@ class Bullet {
     position: Vector,
     directionVector: Vector,
     damage: number,
-    role: Role
+    role: RoleEnum
   ) {
     this.directionVector = directionVector.copy();
     this.position = position.copy();
@@ -27,7 +27,7 @@ class Bullet {
     this.position = this.position.add(this.directionVector.mult(10));
   }
 
-  public getRole(): Role {
+  public getRole(): RoleEnum {
     return this.role;
   }
 

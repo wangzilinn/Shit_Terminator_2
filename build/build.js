@@ -63,16 +63,18 @@ let playerShip;
 let resourceList;
 let bulletList;
 let state;
+let sloganSystem;
 function setup() {
     pressedKeys = new Set();
-    state = State.READY;
+    state = StateEnum.READY;
     size = new Vector(800, 600);
     drawSystem = new DrawSystem(size);
+    sloganSystem = new SloganSystem();
     resourceList = new Array();
     bulletList = new Array();
     info = new Info();
-    enemyShips = [new Ship(Role.COMPUTER)];
-    playerShip = new Ship(Role.PLAYER);
+    enemyShips = [new Ship(RoleEnum.COMPUTER, "Mufasa")];
+    playerShip = new Ship(RoleEnum.PLAYER, "You");
     createCanvas(size.x, size.y);
 }
 function windowResized() {
@@ -81,19 +83,19 @@ function windowResized() {
 function draw() {
     background(200);
     switch (state) {
-        case State.READY:
+        case StateEnum.READY:
             drawSystem.drawReadyScreen();
             break;
-        case State.PASS:
+        case StateEnum.PASS:
             drawSystem.drawNextLevelScreen(enemyShips);
             break;
-        case State.RUNNING:
+        case StateEnum.RUNNING:
             drawGame();
             break;
-        case State.WIN:
+        case StateEnum.WIN:
             drawSystem.drawWinScreen(enemyShips);
             break;
-        case State.OVER:
+        case StateEnum.OVER:
             drawSystem.drawLoseScreen(enemyShips);
             break;
     }
@@ -117,31 +119,35 @@ function drawGame() {
             }
         }
     }
-    if (pressedKeys.has("w") && playerShip.position.y > 0) {
-        playerShip.moveDirection(Direction.UP);
+    if ((pressedKeys.has("w") || pressedKeys.has("ArrowUp")) &&
+        playerShip.position.y > 0) {
+        playerShip.moveDirection(DirectionEnum.UP);
     }
-    if (pressedKeys.has("s") && playerShip.position.y < height) {
-        playerShip.moveDirection(Direction.DOWN);
+    if ((pressedKeys.has("s") || pressedKeys.has("ArrowDown")) &&
+        playerShip.position.y < height) {
+        playerShip.moveDirection(DirectionEnum.DOWN);
     }
-    if (pressedKeys.has("a") && playerShip.position.x > 0) {
-        playerShip.moveDirection(Direction.LEFT);
+    if ((pressedKeys.has("a") || pressedKeys.has("ArrowLeft")) &&
+        playerShip.position.x > 0) {
+        playerShip.moveDirection(DirectionEnum.LEFT);
     }
-    if (pressedKeys.has("d") && playerShip.position.x < width) {
-        playerShip.moveDirection(Direction.RIGHT);
+    if ((pressedKeys.has("d") || pressedKeys.has("ArrowRight")) &&
+        playerShip.position.x < width) {
+        playerShip.moveDirection(DirectionEnum.RIGHT);
     }
     resourceList = resourceList.filter((resource) => {
         resource.reduceLife();
-        if (resource.getRemainLife() <= 0) {
+        if (resource.remainLife <= 0) {
             return false;
         }
         else if (playerShip.checkIfAbsorb(resource)) {
-            playerShip.absorbFuel(resource);
+            playerShip.absorbResource(resource);
             return false;
         }
         else {
             for (let enemyShip of enemyShips) {
                 if (enemyShip.checkIfAbsorb(resource)) {
-                    enemyShip.absorbFuel(resource);
+                    enemyShip.absorbResource(resource);
                     return false;
                 }
             }
@@ -150,20 +156,22 @@ function drawGame() {
     });
     bulletList = bulletList.filter((bullet) => {
         bullet.move();
-        if (bullet.getRole() == Role.PLAYER) {
+        if (bullet.getRole() == RoleEnum.PLAYER) {
             for (let enemyShip of enemyShips) {
                 if (enemyShip.checkIfBeingHit(bullet)) {
                     enemyShip.beingHit(bullet);
                     console.log("enemy being hit");
+                    sloganSystem.addSlogan(undefined, enemyShip.position);
                     return false;
                 }
             }
             return true;
         }
-        else if (bullet.getRole() == Role.COMPUTER) {
+        else if (bullet.getRole() == RoleEnum.COMPUTER) {
             if (playerShip.checkIfBeingHit(bullet)) {
                 playerShip.beingHit(bullet);
                 console.log("player being hit");
+                sloganSystem.addSlogan(undefined, playerShip.position);
                 return false;
             }
             return true;
@@ -188,22 +196,25 @@ function drawGame() {
     if (allEnemyDead) {
         console.log("enemyShip is dead");
         if (info.isMaxLevel()) {
-            state = State.WIN;
+            state = StateEnum.WIN;
             info.resetLevel();
             drawSystem.resetDrawLevelNameScreenCounter();
         }
         else {
-            state = State.PASS;
+            state = StateEnum.PASS;
             info.upgradeLevel();
         }
-        playerShip = new Ship(Role.PLAYER);
-        enemyShips = [new Ship(Role.COMPUTER), new Ship(Role.COMPUTER)];
+        playerShip = new Ship(RoleEnum.PLAYER, "You");
+        enemyShips = [
+            new Ship(RoleEnum.COMPUTER, "Voldemort"),
+            new Ship(RoleEnum.COMPUTER, "Malfoy"),
+        ];
     }
     else if (playerShip.dead) {
-        state = State.OVER;
+        state = StateEnum.OVER;
         info.resetLevel();
-        enemyShips = [new Ship(Role.COMPUTER)];
-        playerShip = new Ship(Role.PLAYER);
+        enemyShips = [new Ship(RoleEnum.COMPUTER, "Mufasa")];
+        playerShip = new Ship(RoleEnum.PLAYER, "You");
         drawSystem.resetDrawLevelNameScreenCounter();
     }
     for (let enemyShip of enemyShips) {
@@ -213,15 +224,16 @@ function drawGame() {
     drawSystem.drawBullets(bulletList);
     drawSystem.drawResources(resourceList);
     drawSystem.drawGameLayout(info, playerShip, enemyShips);
+    sloganSystem.draw();
 }
 function keyPressed() {
     let pressedKey = key;
     if (pressedKey == " ") {
-        if (state == State.WIN || state == State.OVER) {
-            state = State.READY;
+        if (state == StateEnum.WIN || state == StateEnum.OVER) {
+            state = StateEnum.READY;
         }
-        else if (state == State.READY || state == State.PASS) {
-            state = State.RUNNING;
+        else if (state == StateEnum.READY || state == StateEnum.PASS) {
+            state = StateEnum.RUNNING;
         }
     }
     pressedKeys.add(pressedKey);
@@ -230,14 +242,24 @@ function keyReleased() {
     pressedKeys.delete(key);
 }
 function mousePressed() {
-    let bullet = playerShip.shoot(null);
-    if (bullet != null) {
-        console.log("player shoot");
-        bulletList.push(bullet);
+    if (state == StateEnum.RUNNING) {
+        let bullet = playerShip.shoot(null);
+        if (bullet != null) {
+            console.log("player shoot");
+            bulletList.push(bullet);
+        }
     }
 }
 function mouseMoved() {
     playerShip.updateShootDirection(new Vector(mouseX, mouseY));
+}
+class Color {
+    constructor(r, g, b, a) {
+        this.r = r;
+        this.g = g;
+        this.b = b;
+        this.a = a;
+    }
 }
 class DrawSystem {
     constructor(size) {
@@ -246,19 +268,29 @@ class DrawSystem {
     }
     drawReadyScreen() {
         fill(0);
-        textSize(60);
-        let str = "Shit Terminator";
-        text(str, this.getAlignX(str, 60, this.size.x), this.centerPosition.y);
-        str = "press space to start";
+        textSize(80);
+        let str = "Virus War";
+        text(str, this.getAlignX(str, 80, this.size.x), this.centerPosition.y - 50);
         textSize(20);
-        text(str, this.getAlignX(str, 20, this.size.x), this.centerPosition.y + 40);
+        str = "WASD or Arrow keys to Move, Mouse to Aim, Left click to Shoot";
+        text(str, this.getAlignX(str, 20, this.size.x), this.centerPosition.y);
+        str = "You can move to collect Ammo (red), Fuel (green) and Shield (blue)";
+        text(str, this.getAlignX(str, 20, this.size.x), this.centerPosition.y + 30);
+        str = "Shooting consumes Ammo and Being hit consumes Shield";
+        text(str, this.getAlignX(str, 20, this.size.x), this.centerPosition.y + 60);
+        str = "Now go and Destroy the virus!";
+        textSize(30);
+        text(str, this.getAlignX(str, 30, this.size.x), this.centerPosition.y + 110);
+        str = "Press Space to Start";
+        textSize(20);
+        text(str, this.getAlignX(str, 20, this.size.x), this.centerPosition.y + 140);
     }
     drawWinScreen(enemyShips) {
         let str = "You Win";
         fill(0);
         textSize(60);
         text(str, this.getAlignX(str, 60, size.x), this.centerPosition.y);
-        str = "press space to restart";
+        str = "Press Space to Restart";
         textSize(20);
         text(str, this.getAlignX(str, 20, size.x), this.centerPosition.y + 40);
     }
@@ -267,7 +299,7 @@ class DrawSystem {
         fill(0);
         textSize(60);
         text(str, this.getAlignX(str, 60, size.x), this.centerPosition.y);
-        str = "press space to restart";
+        str = "Press Space to Restart";
         textSize(20);
         text(str, this.getAlignX(str, 20, size.x), this.centerPosition.y + 40);
     }
@@ -276,7 +308,7 @@ class DrawSystem {
         textSize(60);
         let str = "Next Level";
         text(str, this.getAlignX(str, 60, size.x), this.centerPosition.y);
-        str = "press space to start";
+        str = "Press Space to Start";
         textSize(20);
         text(str, this.getAlignX(str, 20, size.x), this.centerPosition.y + 40);
     }
@@ -300,24 +332,18 @@ class DrawSystem {
         return false;
     }
     drawShip(ship) {
-        let shipPrinter = ship.getPrinter();
+        let shipPrinter = ship.printer;
         if (ship.dead) {
             return;
+        }
+        if (shipPrinter.checkIfShowBeingHitEffect()) {
+            shipPrinter.increaseBeingHitFrame();
         }
         if (shipPrinter.getRingColor() != null) {
             for (let i = 0; i < shipPrinter.getRingColorValue().length; i++) {
                 noFill();
-                switch (shipPrinter.getRingColor()) {
-                    case Color.RED:
-                        stroke(shipPrinter.getRingColorValue()[i], 0, 0);
-                        break;
-                    case Color.GREEN:
-                        stroke(0, shipPrinter.getRingColorValue()[i], 0);
-                        break;
-                    case Color.BLUE:
-                        stroke(0, 0, shipPrinter.getRingColorValue()[i]);
-                        break;
-                }
+                let color = shipPrinter.getRingColor();
+                stroke(color.r, color.g, color.b, shipPrinter.getRingColorValue()[i]);
                 let radius = ship.size.x + (i + 1) * (1 + i);
                 ellipse(ship.position.x, ship.position.y, radius, radius);
             }
@@ -325,7 +351,7 @@ class DrawSystem {
                 shipPrinter.shiftRingColorValue();
             }
         }
-        if (ship.getRole() == Role.PLAYER) {
+        if (ship.getRole() == RoleEnum.PLAYER) {
             fill(0);
             ellipse(ship.position.x, ship.position.y, ship.size.x, ship.size.y);
         }
@@ -344,7 +370,7 @@ class DrawSystem {
         for (let bullet of bulletList) {
             fill(0);
             noStroke();
-            if (bullet.getRole() == Role.PLAYER) {
+            if (bullet.getRole() == RoleEnum.PLAYER) {
                 ellipse(bullet.position.x, bullet.position.y, bullet.size.x, bullet.size.y);
             }
             else {
@@ -358,33 +384,43 @@ class DrawSystem {
     }
     drawResources(resourceList) {
         for (let resource of resourceList) {
-            let trans = resource.getRemainLife() * 3;
-            switch (resource.getResourceClass()) {
-                case ResourceClass.AMMO:
-                    fill(255, 0, 0, trans);
-                    break;
-                case ResourceClass.FUEL:
-                    fill(0, 255, 0, trans);
-                    break;
-                case ResourceClass.SHIELD:
-                    fill(0, 0, 255, trans);
-            }
+            let trans = resource.remainLife * 3;
+            let color = resource.printer.color;
+            fill(color.r, color.g, color.b, trans);
             noStroke();
-            ellipse(resource.position.x, resource.position.y, resource.getVolume() * 2, resource.getVolume() * 2);
+            ellipse(resource.position.x, resource.position.y, resource.volume * 2, resource.volume * 2);
         }
     }
     drawGameLayout(info, playerShip, enemyShips) {
         fill(0);
+        textSize(15);
+        text(playerShip.name + ": ", 10, 530);
         textSize(12);
-        this.drawResourceContainer(playerShip, new Vector(10, 500));
-        for (let i = 0; i < enemyShips.length; i++) {
-            this.drawResourceContainer(enemyShips[i], new Vector(300 + i * 300, 500));
+        this.drawResourceData(playerShip, new Vector(10, 550));
+        let cnt = 0;
+        for (let enemyShip of enemyShips) {
+            if (enemyShip.dead) {
+                continue;
+            }
+            fill(0);
+            textSize(15);
+            text(enemyShip.name + ": ", 300 + cnt * 300, 530);
+            textSize(12);
+            this.drawResourceData(enemyShip, new Vector(300 + cnt * 300, 550));
+            cnt++;
         }
     }
-    drawResourceContainer(ship, position) {
-        text("Remaining ammo:" + ship.resourceContainer.get(ResourceClass.AMMO), position.x, position.y);
-        text("Remaining fuel:" + ship.resourceContainer.get(ResourceClass.FUEL), position.x, position.y + 20);
-        text("Remaining Shield:" + ship.resourceContainer.get(ResourceClass.SHIELD), position.x, position.y + 40);
+    drawResourceData(ship, position) {
+        let cnt = 0;
+        for (let resourceType of ship.resourceContainer.resourceContainerMap.keys()) {
+            let color = new ResourcePrinter(resourceType).color;
+            fill(color.r, color.g, color.b);
+            text("Remaining " +
+                resourceType +
+                ": " +
+                ship.resourceContainer.get(resourceType).toFixed(0), position.x, position.y + cnt * 20);
+            cnt++;
+        }
     }
     resetDrawLevelNameScreenCounter() {
         for (let key of this.levelNamesCounterMap.keys()) {
@@ -406,6 +442,60 @@ class DrawSystem {
         endShape(CLOSE);
     }
 }
+class SloganPrinter {
+    constructor(slogan, position) {
+        this.slogan = slogan;
+        this.position = position;
+        this.remainingFrame = 60;
+    }
+    reduceRemainingFrame() {
+        this.remainingFrame--;
+    }
+}
+class SloganSystem {
+    constructor() {
+        this.sloganList = [];
+    }
+    addSlogan(slogan, position) {
+        if (slogan == undefined) {
+            slogan =
+                SloganSystem.slogans[Math.floor(Math.random() * SloganSystem.slogans.length)];
+        }
+        this.sloganList.push(new SloganPrinter(slogan, position.copy()));
+    }
+    draw() {
+        for (let sloganPrinter of this.sloganList) {
+            fill(0);
+            textSize(20);
+            text(sloganPrinter.slogan, sloganPrinter.position.x, sloganPrinter.position.y);
+            sloganPrinter.reduceRemainingFrame();
+        }
+        this.sloganList = this.sloganList.filter((sloganPrinter) => sloganPrinter.remainingFrame > 0);
+    }
+}
+SloganSystem.slogans = [
+    "That's HURT!",
+    "AAAAAAAA!",
+    "I'M GNNA DIE!",
+    "STOP SHOOTING ME!",
+    "PLEASE STOP~~",
+    "NO!!!!",
+    "FxxK YOU!",
+];
+class ResourcePrinter {
+    constructor(resourceType) {
+        switch (resourceType) {
+            case ResourceEnum.AMMO:
+                this.color = new Color(255, 0, 0, 0);
+                break;
+            case ResourceEnum.FUEL:
+                this.color = new Color(0, 200, 0, 0);
+                break;
+            case ResourceEnum.SHIELD:
+                this.color = new Color(0, 0, 255, 0);
+        }
+    }
+}
 class ShipPrinter {
     constructor() {
         this.beingHitFrame = 60;
@@ -417,18 +507,8 @@ class ShipPrinter {
         let temp = this.ringColorValue[0];
         this.ringColorValue[this.ringColorValue.length - 1] = temp;
     }
-    startShowingAbsorbResourceEffect(resourceClass) {
-        switch (resourceClass) {
-            case ResourceClass.AMMO:
-                this.ringColor = Color.RED;
-                break;
-            case ResourceClass.FUEL:
-                this.ringColor = Color.GREEN;
-                break;
-            case ResourceClass.SHIELD:
-                this.ringColor = Color.BLUE;
-                break;
-        }
+    startShowingAbsorbResourceEffect(resource) {
+        this.ringColor = resource.printer.color;
     }
     checkIfShowBeingHitEffect() {
         return this.showBeingHitEffect;
@@ -484,32 +564,32 @@ class Engine {
         if (this.enableAcceleration) {
             this.acceleration = new Vector(0, 0);
             switch (direction) {
-                case Direction.UP:
+                case DirectionEnum.UP:
                     this.acceleration.y = -1;
                     break;
-                case Direction.DOWN:
+                case DirectionEnum.DOWN:
                     this.acceleration.y = 1;
                     break;
-                case Direction.LEFT:
+                case DirectionEnum.LEFT:
                     this.acceleration.x = -1;
                     break;
-                case Direction.RIGHT:
+                case DirectionEnum.RIGHT:
                     this.acceleration.x = 1;
             }
         }
         else {
             this.velocity = new Vector(0, 0);
             switch (direction) {
-                case Direction.UP:
+                case DirectionEnum.UP:
                     this.velocity.y = -10;
                     break;
-                case Direction.DOWN:
+                case DirectionEnum.DOWN:
                     this.velocity.y = 10;
                     break;
-                case Direction.LEFT:
+                case DirectionEnum.LEFT:
                     this.velocity.x = -10;
                     break;
-                case Direction.RIGHT:
+                case DirectionEnum.RIGHT:
                     this.velocity.x = 10;
             }
         }
@@ -554,11 +634,11 @@ class Gun {
         this.role = role;
     }
     shoot(position, shootDirection) {
-        if (this.resourceContainer.get(ResourceClass.AMMO) < 10) {
+        if (this.resourceContainer.get(ResourceEnum.AMMO) < 10) {
             return null;
         }
         let bullet = new Bullet(position.copy(), shootDirection, 10, this.role);
-        this.resourceContainer.decrease(ResourceClass.AMMO, 10);
+        this.resourceContainer.decrease(ResourceEnum.AMMO, 10);
         return bullet;
     }
 }
@@ -591,28 +671,20 @@ class Resource {
     constructor() {
         this.position = MoveSystem.randomPosition();
         this.volume = Resource.getRandomVolume();
-        this.resourceClass = Resource.getRandomClass();
+        this.resourceType = Resource.getRandomKind();
         this.remainLife = Resource.getRandomLife();
+        this.printer = new ResourcePrinter(this.resourceType);
     }
-    getRemainLife() {
-        return this.remainLife;
-    }
-    getResourceClass() {
-        return this.resourceClass;
-    }
-    getVolume() {
-        return this.volume;
-    }
-    static getRandomClass() {
+    static getRandomKind() {
         let rand = Math.random();
         if (rand > 0.6) {
-            return ResourceClass.AMMO;
+            return ResourceEnum.AMMO;
         }
         else if (rand > 0.3) {
-            return ResourceClass.SHIELD;
+            return ResourceEnum.SHIELD;
         }
         else {
-            return ResourceClass.FUEL;
+            return ResourceEnum.FUEL;
         }
     }
     static getRandomVolume() {
@@ -630,79 +702,73 @@ class Resource {
 class ResourceContainer {
     constructor(ammo, fuel, shield) {
         this.resourceContainerMap = new Map();
-        this.resourceContainerMap.set(ResourceClass.AMMO, ammo);
-        this.resourceContainerMap.set(ResourceClass.FUEL, fuel);
-        this.resourceContainerMap.set(ResourceClass.SHIELD, shield);
+        this.resourceContainerMap.set(ResourceEnum.AMMO, ammo);
+        this.resourceContainerMap.set(ResourceEnum.FUEL, fuel);
+        this.resourceContainerMap.set(ResourceEnum.SHIELD, shield);
     }
-    increase(resourceClass, amount) {
-        let val = this.resourceContainerMap.get(resourceClass);
+    increase(resourceType, amount) {
+        let val = this.resourceContainerMap.get(resourceType);
         val += amount;
-        this.resourceContainerMap.set(resourceClass, val);
+        this.resourceContainerMap.set(resourceType, val);
     }
-    decrease(resourceClass, amount) {
-        this.increase(resourceClass, -amount);
+    decrease(resourceType, amount) {
+        this.increase(resourceType, -amount);
     }
-    get(resourceClass) {
-        return this.resourceContainerMap.get(resourceClass);
+    get(resourceType) {
+        return this.resourceContainerMap.get(resourceType);
     }
-    empty(resourceClass) {
-        return this.resourceContainerMap.get(resourceClass) < 0;
+    empty(resourceType) {
+        return this.resourceContainerMap.get(resourceType) < 0;
     }
 }
 class Ship {
-    constructor(role) {
+    constructor(role, name) {
         this.dead = false;
         this.role = role;
         this.deadPosition = new Vector(0, 0);
         this.size = new Vector(70, 70);
         this.shootDirection = new Vector(1, 1);
         this.meta = new Meta();
+        this.name = name;
         this.resourceContainer = new ResourceContainer(100, 100, 100);
         this.gun = new Gun(this.resourceContainer, role);
         switch (this.role) {
-            case Role.COMPUTER:
+            case RoleEnum.COMPUTER:
                 this.position = MoveSystem.randomPosition();
                 this.engine = new Engine(this.resourceContainer, MoveSystem.randomVelocity(), new Vector(0, 0), true, true, 1);
                 break;
-            case Role.PLAYER:
+            case RoleEnum.PLAYER:
                 this.position = new Vector(this.meta.screenSize.x / 2, this.meta.screenSize.y / 2);
                 this.engine = new Engine(this.resourceContainer, new Vector(0, 0), new Vector(0, 0), false, false, 0);
                 break;
         }
         this.printer = new ShipPrinter();
     }
-    getPrinter() {
-        return this.printer;
-    }
     getRole() {
         return this.role;
     }
     checkIfAbsorb(resource) {
-        if (this.role == Role.COMPUTER) {
-            return resource.position.dist(this.position) < resource.volume;
+        if (this.role == RoleEnum.COMPUTER) {
+            return (resource.position.dist(this.position) <
+                resource.volume * 2 + this.size.x);
         }
         else {
-            if (resource.position.dist(this.position) <
-                resource.volume * 2 + this.size.x) {
-                return true;
-            }
-            else {
-                return false;
-            }
+            return (resource.position.dist(this.position) <
+                resource.volume * 2 + this.size.x);
         }
     }
-    absorbFuel(resource) {
+    absorbResource(resource) {
         if (this.dead) {
             return;
         }
-        this.printer.startShowingAbsorbResourceEffect(resource.resourceClass);
-        this.resourceContainer.increase(resource.resourceClass, resource.volume);
+        this.printer.startShowingAbsorbResourceEffect(resource);
+        this.resourceContainer.increase(resource.resourceType, resource.volume);
     }
     moveDirection(direction) {
         this.lastPosition = this.position;
         this.engine.setDirection(direction);
         this.position = this.position.add(this.engine.getVelocity());
-        if (this.resourceContainer.empty(ResourceClass.FUEL) && !this.dead) {
+        if (this.resourceContainer.empty(ResourceEnum.FUEL) && !this.dead) {
             this.dead = true;
             this.deadPosition = this.position.copy();
         }
@@ -719,9 +785,9 @@ class Ship {
         return bullet.position.dist(this.position) < this.size.mag() / 2;
     }
     beingHit(bullet) {
-        this.resourceContainer.decrease(ResourceClass.SHIELD, bullet.damage);
+        this.resourceContainer.decrease(ResourceEnum.SHIELD, bullet.damage);
         this.printer.startShowingBeingHitEffect();
-        if (this.resourceContainer.empty(ResourceClass.SHIELD)) {
+        if (this.resourceContainer.empty(ResourceEnum.SHIELD)) {
             console.log("no shield");
             this.dead = true;
         }
@@ -729,10 +795,10 @@ class Ship {
     shoot(enemyShip) {
         let bullet = null;
         switch (this.role) {
-            case Role.PLAYER:
+            case RoleEnum.PLAYER:
                 bullet = this.gun.shoot(this.position.copy(), this.shootDirection.copy());
                 break;
-            case Role.COMPUTER:
+            case RoleEnum.COMPUTER:
                 bullet = AimingSystem.directShootModel(this.gun, this.position, enemyShip.position);
                 break;
         }
@@ -745,38 +811,38 @@ class Ship {
             .normalize();
     }
 }
-var Color;
-(function (Color) {
-    Color[Color["RED"] = 0] = "RED";
-    Color[Color["GREEN"] = 1] = "GREEN";
-    Color[Color["BLUE"] = 2] = "BLUE";
-})(Color || (Color = {}));
-var Direction;
-(function (Direction) {
-    Direction[Direction["UP"] = 0] = "UP";
-    Direction[Direction["DOWN"] = 1] = "DOWN";
-    Direction[Direction["LEFT"] = 2] = "LEFT";
-    Direction[Direction["RIGHT"] = 3] = "RIGHT";
-})(Direction || (Direction = {}));
-var ResourceClass;
-(function (ResourceClass) {
-    ResourceClass[ResourceClass["AMMO"] = 0] = "AMMO";
-    ResourceClass[ResourceClass["FUEL"] = 1] = "FUEL";
-    ResourceClass[ResourceClass["SHIELD"] = 2] = "SHIELD";
-})(ResourceClass || (ResourceClass = {}));
-var Role;
-(function (Role) {
-    Role[Role["PLAYER"] = 0] = "PLAYER";
-    Role[Role["COMPUTER"] = 1] = "COMPUTER";
-})(Role || (Role = {}));
-var State;
-(function (State) {
-    State[State["READY"] = 0] = "READY";
-    State[State["RUNNING"] = 1] = "RUNNING";
-    State[State["PASS"] = 2] = "PASS";
-    State[State["WIN"] = 3] = "WIN";
-    State[State["OVER"] = 4] = "OVER";
-})(State || (State = {}));
+var ColorEnum;
+(function (ColorEnum) {
+    ColorEnum[ColorEnum["RED"] = 0] = "RED";
+    ColorEnum[ColorEnum["GREEN"] = 1] = "GREEN";
+    ColorEnum[ColorEnum["BLUE"] = 2] = "BLUE";
+})(ColorEnum || (ColorEnum = {}));
+var DirectionEnum;
+(function (DirectionEnum) {
+    DirectionEnum[DirectionEnum["UP"] = 0] = "UP";
+    DirectionEnum[DirectionEnum["DOWN"] = 1] = "DOWN";
+    DirectionEnum[DirectionEnum["LEFT"] = 2] = "LEFT";
+    DirectionEnum[DirectionEnum["RIGHT"] = 3] = "RIGHT";
+})(DirectionEnum || (DirectionEnum = {}));
+var ResourceEnum;
+(function (ResourceEnum) {
+    ResourceEnum["AMMO"] = "Ammo";
+    ResourceEnum["FUEL"] = "Fuel";
+    ResourceEnum["SHIELD"] = "Shield";
+})(ResourceEnum || (ResourceEnum = {}));
+var RoleEnum;
+(function (RoleEnum) {
+    RoleEnum[RoleEnum["PLAYER"] = 0] = "PLAYER";
+    RoleEnum[RoleEnum["COMPUTER"] = 1] = "COMPUTER";
+})(RoleEnum || (RoleEnum = {}));
+var StateEnum;
+(function (StateEnum) {
+    StateEnum[StateEnum["READY"] = 0] = "READY";
+    StateEnum[StateEnum["RUNNING"] = 1] = "RUNNING";
+    StateEnum[StateEnum["PASS"] = 2] = "PASS";
+    StateEnum[StateEnum["WIN"] = 3] = "WIN";
+    StateEnum[StateEnum["OVER"] = 4] = "OVER";
+})(StateEnum || (StateEnum = {}));
 class AimingSystem {
     static directShootModel(gun, currentPosition, enemyPosition) {
         let direction = enemyPosition.copy().sub(currentPosition).normalize();

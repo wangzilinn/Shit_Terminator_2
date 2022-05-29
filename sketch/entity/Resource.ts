@@ -3,40 +3,35 @@ class Resource {
   /**
    * 这滴油的油量
    */
-  volume: number;
-  resourceClass: ResourceClass;
+  public volume: number;
+  public resourceType: ResourceEnum;
   /**
    * 这滴油的剩余寿命
    */
-  remainLife: number;
+  public remainLife: number;
+  public printer: ResourcePrinter;
 
   constructor() {
+    // 初始化位置
     this.position = MoveSystem.randomPosition();
+    // 初始化资源大小
     this.volume = Resource.getRandomVolume();
-    this.resourceClass = Resource.getRandomClass();
+    // 初始化资源类型
+    this.resourceType = Resource.getRandomKind();
+    // 初始化剩余寿命
     this.remainLife = Resource.getRandomLife();
+    // 初始化打印器
+    this.printer = new ResourcePrinter(this.resourceType);
   }
 
-  public getRemainLife(): number {
-    return this.remainLife;
-  }
-
-  public getResourceClass(): ResourceClass {
-    return this.resourceClass;
-  }
-
-  public getVolume(): number {
-    return this.volume;
-  }
-
-  private static getRandomClass(): ResourceClass {
+  private static getRandomKind(): ResourceEnum {
     let rand = Math.random();
     if (rand > 0.6) {
-      return ResourceClass.AMMO;
+      return ResourceEnum.AMMO;
     } else if (rand > 0.3) {
-      return ResourceClass.SHIELD;
+      return ResourceEnum.SHIELD;
     } else {
-      return ResourceClass.FUEL;
+      return ResourceEnum.FUEL;
     }
   }
 

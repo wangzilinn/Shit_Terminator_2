@@ -8,18 +8,20 @@ let enemyShips: Ship[];
 let playerShip: Ship;
 let resourceList: Array<Resource>;
 let bulletList: Array<Bullet>;
-let state: State;
+let state: StateEnum;
+let sloganSystem: SloganSystem;
 // P5 WILL AUTOMATICALLY USE GLOBAL MODE IF A DRAW() FUNCTION IS DEFINED
 function setup() {
   pressedKeys = new Set();
-  state = State.READY;
+  state = StateEnum.READY;
   size = new Vector(800, 600);
   drawSystem = new DrawSystem(size);
+  sloganSystem = new SloganSystem();
   resourceList = new Array();
   bulletList = new Array();
   info = new Info();
-  enemyShips = [new Ship(Role.COMPUTER)];
-  playerShip = new Ship(Role.PLAYER);
+  enemyShips = [new Ship(RoleEnum.COMPUTER, "Mufasa")];
+  playerShip = new Ship(RoleEnum.PLAYER, "You");
   createCanvas(size.x, size.y);
 }
 
@@ -32,19 +34,19 @@ function windowResized() {
 function draw() {
   background(200);
   switch (state) {
-    case State.READY:
+    case StateEnum.READY:
       drawSystem.drawReadyScreen();
       break;
-    case State.PASS:
+    case StateEnum.PASS:
       drawSystem.drawNextLevelScreen(enemyShips);
       break;
-    case State.RUNNING:
+    case StateEnum.RUNNING:
       drawGame();
       break;
-    case State.WIN:
+    case StateEnum.WIN:
       drawSystem.drawWinScreen(enemyShips);
       break;
-    case State.OVER:
+    case StateEnum.OVER:
       drawSystem.drawLoseScreen(enemyShips);
       break;
   }
@@ -73,31 +75,44 @@ function drawGame() {
       }
     }
   }
-  if (pressedKeys.has("w") && playerShip.position.y > 0) {
-    playerShip.moveDirection(Direction.UP);
+
+  if (
+    (pressedKeys.has("w") || pressedKeys.has("ArrowUp")) &&
+    playerShip.position.y > 0
+  ) {
+    playerShip.moveDirection(DirectionEnum.UP);
   }
-  if (pressedKeys.has("s") && playerShip.position.y < height) {
-    playerShip.moveDirection(Direction.DOWN);
+  if (
+    (pressedKeys.has("s") || pressedKeys.has("ArrowDown")) &&
+    playerShip.position.y < height
+  ) {
+    playerShip.moveDirection(DirectionEnum.DOWN);
   }
-  if (pressedKeys.has("a") && playerShip.position.x > 0) {
-    playerShip.moveDirection(Direction.LEFT);
+  if (
+    (pressedKeys.has("a") || pressedKeys.has("ArrowLeft")) &&
+    playerShip.position.x > 0
+  ) {
+    playerShip.moveDirection(DirectionEnum.LEFT);
   }
-  if (pressedKeys.has("d") && playerShip.position.x < width) {
-    playerShip.moveDirection(Direction.RIGHT);
+  if (
+    (pressedKeys.has("d") || pressedKeys.has("ArrowRight")) &&
+    playerShip.position.x < width
+  ) {
+    playerShip.moveDirection(DirectionEnum.RIGHT);
   }
 
   //遍历所有油滴,检查飞船是否可以吸收这个油滴
   resourceList = resourceList.filter((resource) => {
     resource.reduceLife();
-    if (resource.getRemainLife() <= 0) {
+    if (resource.remainLife <= 0) {
       return false;
     } else if (playerShip.checkIfAbsorb(resource)) {
-      playerShip.absorbFuel(resource);
+      playerShip.absorbResource(resource);
       return false;
     } else {
       for (let enemyShip of enemyShips) {
         if (enemyShip.checkIfAbsorb(resource)) {
-          enemyShip.absorbFuel(resource);
+          enemyShip.absorbResource(resource);
           return false;
         }
       }
@@ -110,19 +125,21 @@ function drawGame() {
   bulletList = bulletList.filter((bullet) => {
     bullet.move();
     //敌方飞船是否被击中:
-    if (bullet.getRole() == Role.PLAYER) {
+    if (bullet.getRole() == RoleEnum.PLAYER) {
       for (let enemyShip of enemyShips) {
         if (enemyShip.checkIfBeingHit(bullet)) {
           enemyShip.beingHit(bullet);
           console.log("enemy being hit");
+          sloganSystem.addSlogan(undefined, enemyShip.position);
           return false;
         }
       }
       return true;
-    } else if (bullet.getRole() == Role.COMPUTER) {
+    } else if (bullet.getRole() == RoleEnum.COMPUTER) {
       if (playerShip.checkIfBeingHit(bullet)) {
         playerShip.beingHit(bullet);
         console.log("player being hit");
+        sloganSystem.addSlogan(undefined, playerShip.position);
         return false;
       }
       return true;
@@ -150,21 +167,24 @@ function drawGame() {
   if (allEnemyDead) {
     console.log("enemyShip is dead");
     if (info.isMaxLevel()) {
-      state = State.WIN;
+      state = StateEnum.WIN;
       info.resetLevel();
       drawSystem.resetDrawLevelNameScreenCounter();
     } else {
-      state = State.PASS;
+      state = StateEnum.PASS;
       info.upgradeLevel();
     }
-    playerShip = new Ship(Role.PLAYER);
+    playerShip = new Ship(RoleEnum.PLAYER, "You");
     //这里硬编码为第二关需要两个坏蛋
-    enemyShips = [new Ship(Role.COMPUTER), new Ship(Role.COMPUTER)];
+    enemyShips = [
+      new Ship(RoleEnum.COMPUTER, "Voldemort"),
+      new Ship(RoleEnum.COMPUTER, "Malfoy"),
+    ];
   } else if (playerShip.dead) {
-    state = State.OVER;
+    state = StateEnum.OVER;
     info.resetLevel();
-    enemyShips = [new Ship(Role.COMPUTER)];
-    playerShip = new Ship(Role.PLAYER);
+    enemyShips = [new Ship(RoleEnum.COMPUTER, "Mufasa")];
+    playerShip = new Ship(RoleEnum.PLAYER, "You");
     drawSystem.resetDrawLevelNameScreenCounter();
   }
 
@@ -176,20 +196,22 @@ function drawGame() {
   drawSystem.drawBullets(bulletList);
   drawSystem.drawResources(resourceList);
   drawSystem.drawGameLayout(info, playerShip, enemyShips);
+  sloganSystem.draw();
 }
 
 function keyPressed() {
   // 按空格,则将状态变为执行游戏逻辑状态
   let pressedKey = key;
   if (pressedKey == " ") {
-    if (state == State.WIN || state == State.OVER) {
+    if (state == StateEnum.WIN || state == StateEnum.OVER) {
       //当赢了或输了,则点击空格回到准备界面
-      state = State.READY;
-    } else if (state == State.READY || state == State.PASS) {
+      state = StateEnum.READY;
+    } else if (state == StateEnum.READY || state == StateEnum.PASS) {
       //当在准备界面或者过关了,则开始运行游戏
-      state = State.RUNNING;
+      state = StateEnum.RUNNING;
     }
   }
+  // console.log(pressedKey);
   pressedKeys.add(pressedKey);
 }
 
@@ -198,11 +220,13 @@ function keyReleased() {
 }
 
 function mousePressed() {
-  let bullet = playerShip.shoot(null);
-  if (bullet != null) {
-    console.log("player shoot");
-    // if shit doesn't have enough oil,then the bullet is null
-    bulletList.push(bullet);
+  if (state == StateEnum.RUNNING) {
+    let bullet = playerShip.shoot(null);
+    if (bullet != null) {
+      console.log("player shoot");
+      // if shit doesn't have enough oil,then the bullet is null
+      bulletList.push(bullet);
+    }
   }
 }
 

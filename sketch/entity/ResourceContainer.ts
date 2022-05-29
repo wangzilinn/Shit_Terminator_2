@@ -1,29 +1,27 @@
 class ResourceContainer {
-    resourceContainerMap:Map<ResourceClass, number>
-    constructor(ammo:number, fuel:number, shield:number){
-        this.resourceContainerMap = new Map()
-        this.resourceContainerMap.set(ResourceClass.AMMO, ammo);
-        this.resourceContainerMap.set(ResourceClass.FUEL, fuel);
-        this.resourceContainerMap.set(ResourceClass.SHIELD, shield);
-    }
+  resourceContainerMap: Map<ResourceEnum, number>;
+  constructor(ammo: number, fuel: number, shield: number) {
+    this.resourceContainerMap = new Map();
+    this.resourceContainerMap.set(ResourceEnum.AMMO, ammo);
+    this.resourceContainerMap.set(ResourceEnum.FUEL, fuel);
+    this.resourceContainerMap.set(ResourceEnum.SHIELD, shield);
+  }
 
-    public increase(resourceClass: ResourceClass, amount:number):void {
-        let val = this.resourceContainerMap.get(resourceClass)
-        val += amount
-        this.resourceContainerMap.set(resourceClass, val)
-    }
+  public increase(resourceType: ResourceEnum, amount: number): void {
+    let val = this.resourceContainerMap.get(resourceType);
+    val += amount;
+    this.resourceContainerMap.set(resourceType, val);
+  }
 
-    public decrease(resourceClass:ResourceClass, amount:number):void {
-        this.increase(resourceClass, -amount);
-    }
+  public decrease(resourceType: ResourceEnum, amount: number): void {
+    this.increase(resourceType, -amount);
+  }
 
-    public get(resourceClass:ResourceClass): number {
-        return this.resourceContainerMap.get(resourceClass);
-    }
+  public get(resourceType: ResourceEnum): number {
+    return this.resourceContainerMap.get(resourceType);
+  }
 
-    public empty(resourceClass: ResourceClass): boolean {
-        return this.resourceContainerMap.get(resourceClass) < 0;
-    }
-
-
+  public empty(resourceType: ResourceEnum): boolean {
+    return this.resourceContainerMap.get(resourceType) < 0;
+  }
 }
