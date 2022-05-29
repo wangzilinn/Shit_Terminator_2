@@ -21,12 +21,14 @@ class SloganSystem {
     "I'M GNNA DIE!",
     "STOP SHOOTING ME!",
     "PLEASE STOP~~",
-    "GO FxxUSELF",
+    "GO FxxK YOUSELF",
     "FxxK YOU!",
     "求求你别打了",
     "我的老天鹅呀",
-    "你在打一个试试？！",
+    "你再打一个试试？！",
     "你这个渣渣！",
+    "你打我？那我就干你",
+    "笑死",
   ];
   constructor() {
     this.sloganList = [];

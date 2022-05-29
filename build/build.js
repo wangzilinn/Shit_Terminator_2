@@ -102,6 +102,7 @@ function draw() {
 }
 function drawGame() {
     if (drawSystem.checkAndDrawLevelNameScreen(info)) {
+        bulletList = [];
         return;
     }
     if (frameCount % 10 == 0) {
@@ -135,8 +136,10 @@ function drawGame() {
         playerShip.position.x < width) {
         playerShip.moveDirection(DirectionEnum.RIGHT);
     }
-    resourceList = resourceList.filter((resource) => {
+    resourceList.forEach((resource) => {
         resource.reduceLife();
+    });
+    resourceList = resourceList.filter((resource) => {
         if (resource.remainLife <= 0) {
             return false;
         }
@@ -154,8 +157,10 @@ function drawGame() {
             return true;
         }
     });
-    bulletList = bulletList.filter((bullet) => {
+    bulletList.forEach((bullet) => {
         bullet.move();
+    });
+    bulletList = bulletList.filter((bullet) => {
         if (bullet.getRole() == RoleEnum.PLAYER) {
             for (let enemyShip of enemyShips) {
                 if (enemyShip.checkIfBeingHit(bullet)) {
@@ -194,7 +199,7 @@ function drawGame() {
         }
     }
     if (allEnemyDead) {
-        console.log("enemyShip is dead");
+        console.log("enemyShips are dead");
         if (info.isMaxLevel()) {
             state = StateEnum.WIN;
             info.resetLevel();
@@ -479,12 +484,14 @@ SloganSystem.slogans = [
     "I'M GNNA DIE!",
     "STOP SHOOTING ME!",
     "PLEASE STOP~~",
-    "GO FxxUSELF",
+    "GO FxxK YOUSELF",
     "FxxK YOU!",
     "求求你别打了",
     "我的老天鹅呀",
-    "你在打一个试试？！",
+    "你再打一个试试？！",
     "你这个渣渣！",
+    "你打我？那我就干你",
+    "笑死",
 ];
 class ResourcePrinter {
     constructor(resourceType) {

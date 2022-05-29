@@ -56,6 +56,8 @@ function drawGame() {
   //检查是否需要显示关卡名字:
   if (drawSystem.checkAndDrawLevelNameScreen(info)) {
     //如果显示了关卡名字,则直接显示下一帧
+    // 此时鼠标点击无效
+    bulletList = [];
     return;
   }
   // 生产资源:
@@ -100,10 +102,11 @@ function drawGame() {
   ) {
     playerShip.moveDirection(DirectionEnum.RIGHT);
   }
-
+  resourceList.forEach((resource) => {
+    resource.reduceLife();
+  });
   //遍历所有油滴,检查飞船是否可以吸收这个油滴
   resourceList = resourceList.filter((resource) => {
-    resource.reduceLife();
     if (resource.remainLife <= 0) {
       return false;
     } else if (playerShip.checkIfAbsorb(resource)) {
@@ -121,9 +124,10 @@ function drawGame() {
   });
 
   //遍历所有子弹,检查子弹是否超出画面,是否击中敌方飞船
-
-  bulletList = bulletList.filter((bullet) => {
+  bulletList.forEach((bullet) => {
     bullet.move();
+  });
+  bulletList = bulletList.filter((bullet) => {
     //敌方飞船是否被击中:
     if (bullet.getRole() == RoleEnum.PLAYER) {
       for (let enemyShip of enemyShips) {
@@ -165,7 +169,7 @@ function drawGame() {
     }
   }
   if (allEnemyDead) {
-    console.log("enemyShip is dead");
+    console.log("enemyShips are dead");
     if (info.isMaxLevel()) {
       state = StateEnum.WIN;
       info.resetLevel();
