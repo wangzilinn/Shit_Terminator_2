@@ -21,8 +21,12 @@ class SloganSystem {
     "I'M GNNA DIE!",
     "STOP SHOOTING ME!",
     "PLEASE STOP~~",
-    "NO!!!!",
+    "GO FxxUSELF",
     "FxxK YOU!",
+    "求求你别打了",
+    "我的老天鹅呀",
+    "你在打一个试试？！",
+    "你这个渣渣！",
   ];
   constructor() {
     this.sloganList = [];
@@ -34,7 +38,9 @@ class SloganSystem {
           Math.floor(Math.random() * SloganSystem.slogans.length)
         ];
     }
-    this.sloganList.push(new SloganPrinter(slogan, position.copy()));
+    this.sloganList.push(
+      new SloganPrinter(slogan, position.add(new Vector(50, 0)))
+    );
   }
   public draw() {
     for (let sloganPrinter of this.sloganList) {

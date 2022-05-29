@@ -461,7 +461,7 @@ class SloganSystem {
             slogan =
                 SloganSystem.slogans[Math.floor(Math.random() * SloganSystem.slogans.length)];
         }
-        this.sloganList.push(new SloganPrinter(slogan, position.copy()));
+        this.sloganList.push(new SloganPrinter(slogan, position.add(new Vector(50, 0))));
     }
     draw() {
         for (let sloganPrinter of this.sloganList) {
@@ -479,8 +479,12 @@ SloganSystem.slogans = [
     "I'M GNNA DIE!",
     "STOP SHOOTING ME!",
     "PLEASE STOP~~",
-    "NO!!!!",
+    "GO FxxUSELF",
     "FxxK YOU!",
+    "求求你别打了",
+    "我的老天鹅呀",
+    "你在打一个试试？！",
+    "你这个渣渣！",
 ];
 class ResourcePrinter {
     constructor(resourceType) {
